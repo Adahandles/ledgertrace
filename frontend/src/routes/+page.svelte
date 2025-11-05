@@ -1,13 +1,29 @@
 <script>
-	import { Search, AlertTriangle, ExternalLink, TrendingUp, Shield, AlertCircle, Info, MapPin, DollarSign, Building } from 'lucide-svelte';
+	import { onMount } from 'svelte';
+	import { Search, AlertTriangle, ExternalLink, TrendingUp, Shield, AlertCircle, Info, MapPin, DollarSign, Building, Scale, Gavel, FileText, Calendar, Globe, Users, CreditCard, Bell, Eye, TrendingDown, CheckCircle, XCircle, Clock, Download, FileX } from 'lucide-svelte';
+	
+	// Import our new Web3 components
+	import ThemeToggle from '../lib/components/ThemeToggle.svelte';
+	import EntityCard from '../lib/components/EntityCard.svelte';
+	import RiskScore from '../lib/components/RiskScore.svelte';
+	import BadgeFlag from '../lib/components/BadgeFlag.svelte';
+	import CyberButton from '../lib/components/CyberButton.svelte';
+	import { darkMode } from '../lib/stores/darkMode.js';
 	
 	let searchQuery = '';
 	let searchAddress = '';
 	let loading = false;
 	let entityData = null;
 	let error = null;
+	let exportLoading = false;
+	let exportError = null;
 
-	const API_BASE = 'http://localhost:8000';
+	const API_BASE = 'http://localhost:8002';
+	
+	// Initialize dark mode on mount
+	onMount(() => {
+		darkMode.init();
+	});
 	
 	async function searchEntity() {
 		if (!searchQuery.trim()) return;
@@ -88,6 +104,89 @@
 		return 'bg-blue-50 text-blue-700 border-blue-200';
 	}
 
+	function getCourtCaseColor(caseType) {
+		if (caseType === 'Foreclosure') return 'bg-red-100 text-red-800 border-red-300';
+		if (caseType === 'Bankruptcy') return 'bg-purple-100 text-purple-800 border-purple-300';
+		if (caseType === 'Tax Lien') return 'bg-orange-100 text-orange-800 border-orange-300';
+		if (caseType === 'Civil Litigation') return 'bg-blue-100 text-blue-800 border-blue-300';
+		return 'bg-gray-100 text-gray-800 border-gray-300';
+	}
+
+	function getCourtCaseIcon(caseType) {
+		if (caseType === 'Foreclosure') return 'Building';
+		if (caseType === 'Bankruptcy') return 'DollarSign';
+		if (caseType === 'Tax Lien') return 'AlertCircle';
+		if (caseType === 'Civil Litigation') return 'Scale';
+		return 'FileText';
+	}
+
+	function getCourtCaseStatus(status) {
+		if (status === 'Open' || status === 'Active') return 'bg-red-100 text-red-700 border-red-200';
+		if (status === 'Judgment' || status === 'Closed') return 'bg-gray-100 text-gray-700 border-gray-200';
+		return 'bg-yellow-100 text-yellow-700 border-yellow-200';
+	}
+
+	async function exportReport(format) {
+		if (!entityData) return;
+		
+		exportLoading = true;
+		exportError = null;
+		
+		try {
+			const exportRequest = {
+				entity_input: {
+					name: entityData.name,
+					address: searchAddress || null,
+					ein: null,
+					officers: []
+				},
+				export_format: format,
+				include_sections: [
+					"entity_info", 
+					"risk_score", 
+					"county_offices", 
+					"court_activity", 
+					"domain_info", 
+					"grants_data", 
+					"monitoring_data"
+				],
+				template_style: "professional"
+			};
+			
+			const response = await fetch(`${API_BASE}/export`, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify(exportRequest)
+			});
+			
+			if (!response.ok) {
+				throw new Error(`Export failed: ${response.statusText}`);
+			}
+			
+			const exportResponse = await response.json();
+			
+			if (!exportResponse.success) {
+				throw new Error(exportResponse.error_message || 'Export generation failed');
+			}
+			
+			// Trigger download
+			const downloadUrl = `${API_BASE}${exportResponse.download_url}`;
+			const link = document.createElement('a');
+			link.href = downloadUrl;
+			link.download = exportResponse.file_name;
+			document.body.appendChild(link);
+			link.click();
+			document.body.removeChild(link);
+			
+		} catch (err) {
+			exportError = err.message;
+		} finally {
+			exportLoading = false;
+		}
+	}
+
 	function getSourceUrl(entityName, source) {
 		const encodedName = encodeURIComponent(entityName);
 		const sources = {
@@ -106,129 +205,211 @@
 	</style>
 </svelte:head>
 
-<div class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+<div class="min-h-screen transition-all duration-300 {$darkMode ? 'bg-gradient-to-br from-dark-900 via-dark-850 to-dark-800 text-white' : 'bg-gradient-to-br from-light-50 to-light-100 text-dark-900'}">
 	<!-- Header -->
-	<header class="bg-white shadow-sm border-b">
-		<div class="max-w-7xl mx-auto px-4 py-6">
-			<div class="flex items-center space-x-3">
-				<Shield class="h-8 w-8 text-indigo-600" />
-				<h1 class="text-3xl font-bold text-gray-900">LedgerTrace</h1>
-				<span class="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded">Entity Risk Analysis</span>
+	<header class="border-b {$darkMode ? 'border-primary-500/20 bg-dark-900/50' : 'border-primary-200 bg-white/80'} backdrop-blur-xl sticky top-0 z-50">
+		<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+			<div class="flex items-center justify-between h-16">
+				<div class="flex items-center space-x-4">
+					<div class="flex items-center space-x-3">
+						<div class="relative">
+							<TrendingUp class="h-8 w-8 text-primary-400 animate-pulse-slow" />
+							<div class="absolute inset-0 h-8 w-8 text-primary-400 animate-ping opacity-20">
+								<TrendingUp class="h-8 w-8" />
+							</div>
+						</div>
+						<h1 class="text-2xl font-bold cyber-gradient">LedgerTrace</h1>
+					</div>
+					<div class="hidden sm:flex items-center space-x-2">
+						<div class="glass-panel px-4 py-2 rounded-xl">
+							<span class="text-sm font-medium {$darkMode ? 'text-gray-300' : 'text-gray-600'}">AI-Powered Entity Intelligence</span>
+						</div>
+					</div>
+				</div>
+				<div class="flex items-center space-x-4">
+					<div class="hidden lg:block text-xs {$darkMode ? 'text-gray-400' : 'text-gray-500'} font-medium">
+						🧠🏛️📍 Leading the Future of Civic Intelligence
+					</div>
+					<ThemeToggle size="md" />
+				</div>
 			</div>
 		</div>
 	</header>
 
-	<main class="max-w-4xl mx-auto px-4 py-8">
+	<main class="max-w-6xl mx-auto px-4 py-8">
 		<!-- Search Section -->
-		<div class="bg-white rounded-lg shadow-lg p-6 mb-8">
-			<div class="text-center mb-6">
-				<h2 class="text-2xl font-semibold text-gray-900 mb-2">Search Entity</h2>
-				<p class="text-gray-600">Enter an organization name to analyze risk factors and red flags</p>
+		<div class="glass-panel {$darkMode ? 'border-primary-500/20' : 'border-primary-200'} p-8 mb-8 animate-fade-in">
+			<div class="text-center mb-8">
+				<h2 class="text-3xl font-bold {$darkMode ? 'text-white' : 'text-dark-900'} mb-3">Entity Intelligence Search</h2>
+				<p class="{$darkMode ? 'text-gray-300' : 'text-gray-600'} text-lg">Discover comprehensive risk analysis and entity intelligence</p>
 			</div>
 			
-			<form on:submit|preventDefault={searchEntity} class="space-y-4">
-				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-					<div>
-						<label for="entity-name" class="block text-sm font-medium text-gray-700 mb-2">Entity Name</label>
+			<form on:submit|preventDefault={searchEntity} class="space-y-6">
+				<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+					<div class="space-y-2">
+						<label for="entity-name" class="block text-sm font-semibold {$darkMode ? 'text-gray-200' : 'text-gray-700'} mb-2">Entity Name</label>
 						<input
 							id="entity-name"
 							bind:value={searchQuery}
 							type="text"
 							placeholder="Enter entity name (e.g., ABC Corp)"
-							class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+							class="cyber-input w-full px-4 py-3 {$darkMode ? 'bg-dark-800 border-primary-500/30 text-white placeholder-gray-400' : 'bg-white border-primary-300 text-dark-900 placeholder-gray-500'} rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200"
 							disabled={loading}
 						/>
 					</div>
-					<div>
-						<label for="entity-address" class="block text-sm font-medium text-gray-700 mb-2">Address (Optional)</label>
+					<div class="space-y-2">
+						<label for="entity-address" class="block text-sm font-semibold {$darkMode ? 'text-gray-200' : 'text-gray-700'} mb-2">Address (Optional)</label>
 						<input
 							id="entity-address"
 							bind:value={searchAddress}
 							type="text"
 							placeholder="Enter address for property analysis"
-							class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+							class="cyber-input w-full px-4 py-3 {$darkMode ? 'bg-dark-800 border-primary-500/30 text-white placeholder-gray-400' : 'bg-white border-primary-300 text-dark-900 placeholder-gray-500'} rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200"
 							disabled={loading}
 						/>
 					</div>
 				</div>
 				<div class="flex justify-center">
-					<button
-						type="submit"
+					<CyberButton
+						variant="primary"
+						size="lg"
 						disabled={loading || !searchQuery.trim()}
-						class="px-8 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+						onClick={searchEntity}
 					>
 						<Search class="h-5 w-5" />
 						<span>{loading ? 'Analyzing...' : 'Analyze Entity'}</span>
-					</button>
+					</CyberButton>
 				</div>
 			</form>
 		</div>
 
 		<!-- Error Display -->
 		{#if error}
-			<div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-				<div class="flex items-center space-x-2">
-					<AlertTriangle class="h-5 w-5 text-red-600" />
-					<p class="text-red-800">Error: {error}</p>
+			<div class="glass-panel border-danger-500/20 p-6 mb-8 animate-slide-up">
+				<div class="flex items-center space-x-3">
+					<div class="p-2 bg-danger-100 rounded-lg">
+						<AlertTriangle class="h-5 w-5 text-danger-600" />
+					</div>
+					<div>
+						<h4 class="font-semibold text-danger-800 mb-1">Analysis Error</h4>
+						<p class="{$darkMode ? 'text-danger-200' : 'text-danger-700'}">{error}</p>
+					</div>
 				</div>
 			</div>
 		{/if}
 
-		<!-- Entity Profile -->
+		<!-- Entity Intelligence Panel -->
 		{#if entityData}
-			<div class="bg-white rounded-lg shadow-lg p-6">
-				<!-- Entity Header -->
-				<div class="border-b pb-6 mb-6">
-					<div class="flex items-center justify-between mb-4">
-						<h3 class="text-2xl font-bold text-gray-900">{entityData.name}</h3>
-						<div class="text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
-							Analysis Complete
-						</div>
+			<div class="space-y-8 animate-fade-in">
+				<!-- Risk Score Header -->
+				<div class="flex flex-col lg:flex-row gap-6">
+					<div class="flex-1">
+						<EntityCard 
+							name={entityData.name} 
+							status="Analysis Complete"
+							description="Comprehensive entity intelligence and risk assessment"
+							badges={[
+								{ type: 'info', text: 'AI Analyzed', tooltip: 'Analysis powered by advanced AI algorithms' },
+								{ type: 'success', text: 'Verified', tooltip: 'Entity verification completed' }
+							]}
+						>
+							<div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+								<div>
+									<RiskScore 
+										score={entityData.risk_score}
+										title="Risk Assessment"
+										subtitle="Overall entity risk profile"
+									/>
+								</div>
+								<div class="space-y-4">
+									<div class="flex items-center space-x-3">
+										<div class="p-2 bg-primary-100 rounded-lg">
+											<TrendingUp class="h-5 w-5 text-primary-600" />
+										</div>
+										<div>
+											<h4 class="font-semibold {$darkMode ? 'text-white' : 'text-dark-900'}">Analysis Metrics</h4>
+											<p class="{$darkMode ? 'text-gray-300' : 'text-gray-600'} text-sm">Multi-source intelligence fusion</p>
+										</div>
+									</div>
+									<div class="grid grid-cols-2 gap-4 text-sm">
+										<div class="glass-panel p-3 rounded-lg">
+											<div class="font-medium {$darkMode ? 'text-primary-400' : 'text-primary-600'}">{entityData.risk_score}/100</div>
+											<div class="{$darkMode ? 'text-gray-300' : 'text-gray-600'}">Risk Score</div>
+										</div>
+										<div class="glass-panel p-3 rounded-lg">
+											<div class="font-medium {$darkMode ? 'text-primary-400' : 'text-primary-600'}">
+												{getRiskLabel(entityData.risk_score)}
+											</div>
+											<div class="{$darkMode ? 'text-gray-300' : 'text-gray-600'}">Classification</div>
+										</div>
+									</div>
+								</div>
+							</div>
+						</EntityCard>
 					</div>
-					
-					<!-- Risk Score -->
-					<div class="flex items-center space-x-4">
+				</div>
+				
+				<!-- Export Options -->
+				<div class="glass-panel p-6 rounded-xl border border-primary-500/20">
+					<div class="flex items-center justify-between">
+						<div class="flex items-center space-x-3">
+							<div class="p-2 bg-accent-100 rounded-lg">
+								<FileText class="h-5 w-5 text-accent-600" />
+							</div>
+							<div>
+								<h4 class="font-semibold {$darkMode ? 'text-white' : 'text-dark-900'}">Export Intelligence Report</h4>
+								<p class="{$darkMode ? 'text-gray-300' : 'text-gray-600'} text-sm">Download comprehensive analysis</p>
+							</div>
+						<div class="flex items-center space-x-3">
+							<CyberButton
+								variant="primary"
+								size="sm" 
+								disabled={exportLoading}
+								onClick={() => exportReport('pdf')}
+							>
+								{#if exportLoading}
+									<Clock class="animate-spin h-4 w-4" />
+								{:else}
+									<Download class="h-4 w-4" />
+								{/if}
+								PDF Report
+							</CyberButton>
+							<CyberButton
+								variant="secondary"
+								size="sm"
+								disabled={exportLoading}
+								onClick={() => exportReport('json')}
+							>
+								{#if exportLoading}
+									<Clock class="animate-spin h-4 w-4" />
+								{:else}
+									<FileX class="h-4 w-4" />
+								{/if}
+								Raw JSON
+							</CyberButton>
+						</div>
+					{#if exportError}
+						<div class="mt-4 glass-panel border-danger-500/20 p-4 rounded-lg">
+							<div class="flex items-center space-x-3">
+								<AlertTriangle class="h-5 w-5 text-danger-400" />
+								<div>
+									<h5 class="font-medium text-danger-600">Export Failed</h5>
+									<p class="text-sm {$darkMode ? 'text-danger-200' : 'text-danger-700'}">{exportError}</p>
+								</div>
+							</div>
+						</div>
+					{/if}
+					<div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs {$darkMode ? 'text-gray-300' : 'text-gray-500'}">
 						<div class="flex items-center space-x-2">
-							<TrendingUp class="h-5 w-5 text-gray-500" />
-							<span class="text-sm text-gray-600">Risk Assessment:</span>
+							<span class="text-lg">📄</span>
+							<span>PDF reports with professional formatting</span>
 						</div>
-						<div class={`px-4 py-2 rounded-lg font-semibold border shadow-sm ${getRiskColor(entityData.risk_score)} flex items-center space-x-2`}>
-							{#if getRiskIcon(entityData.risk_score) === 'AlertTriangle'}
-								<AlertTriangle class="h-4 w-4" />
-							{:else if getRiskIcon(entityData.risk_score) === 'AlertCircle'}
-								<AlertCircle class="h-4 w-4" />
-							{:else if getRiskIcon(entityData.risk_score) === 'Info'}
-								<Info class="h-4 w-4" />
-							{:else}
-								<Shield class="h-4 w-4" />
-							{/if}
-							<span>{entityData.risk_score}/100 - {getRiskLabel(entityData.risk_score)}</span>
+						<div class="flex items-center space-x-2">
+							<span class="text-lg">🧬</span>
+							<span>JSON data for technical integration</span>
 						</div>
 					</div>
-					
-					<!-- Risk Score Bar -->
-					<div class="mt-4">
-						<div class="w-full bg-gray-200 rounded-full h-4 shadow-inner">
-							<div 
-								class="h-4 rounded-full transition-all duration-500 shadow-sm {getRiskBarColor(entityData.risk_score)}"
-								style="width: {Math.min(entityData.risk_score, 100)}%"
-							></div>
-						</div>
-						<div class="flex justify-between text-xs text-gray-500 mt-2">
-							<span class="flex items-center space-x-1">
-								<Shield class="h-3 w-3 text-green-500" />
-								<span>0 - Minimal</span>
-							</span>
-							<span class="flex items-center space-x-1">
-								<AlertCircle class="h-3 w-3 text-yellow-500" />
-								<span>25 - Medium</span>
-							</span>
-							<span class="flex items-center space-x-1">
-								<AlertTriangle class="h-3 w-3 text-red-500" />
-								<span>75 - Critical</span>
-							</span>
-						</div>
-					</div>
+				</div>
 				</div>
 
 				<!-- Entity Classification Section -->
@@ -315,6 +496,451 @@
 									</div>
 								</div>
 							{/if}
+						</div>
+					</div>
+				{/if}
+
+				<!-- Court Activity Section -->
+				{#if entityData.court_data && entityData.court_data.case_count > 0}
+					<div class="mb-6">
+						<h4 class="text-lg font-semibold text-gray-900 mb-4 flex items-center space-x-2">
+							<Scale class="h-5 w-5 text-red-600" />
+							<span>Court Activity ({entityData.court_data.case_count})</span>
+							{#if entityData.court_data.has_foreclosure || entityData.court_data.has_bankruptcy}
+								<span class="text-sm bg-red-100 text-red-800 px-2 py-0.5 rounded-full">High Risk</span>
+							{/if}
+						</h4>
+						
+						<div class="bg-gradient-to-r from-red-50 to-orange-50 border border-red-200 rounded-lg p-4">
+							<!-- Court Activity Summary -->
+							<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+								{#if entityData.court_data.has_foreclosure}
+									<div class="flex items-center space-x-2">
+										<Building class="h-5 w-5 text-red-600" />
+										<div>
+											<div class="text-sm font-medium text-red-900">Foreclosure</div>
+											<div class="text-xs text-red-600">Property at risk</div>
+										</div>
+									</div>
+								{/if}
+								
+								{#if entityData.court_data.has_bankruptcy}
+									<div class="flex items-center space-x-2">
+										<DollarSign class="h-5 w-5 text-purple-600" />
+										<div>
+											<div class="text-sm font-medium text-purple-900">Bankruptcy</div>
+											<div class="text-xs text-purple-600">Financial distress</div>
+										</div>
+									</div>
+								{/if}
+								
+								{#if entityData.court_data.has_tax_lien}
+									<div class="flex items-center space-x-2">
+										<AlertCircle class="h-5 w-5 text-orange-600" />
+										<div>
+											<div class="text-sm font-medium text-orange-900">Tax Lien</div>
+											<div class="text-xs text-orange-600">Tax delinquent</div>
+										</div>
+									</div>
+								{/if}
+								
+								{#if entityData.court_data.has_civil}
+									<div class="flex items-center space-x-2">
+										<Scale class="h-5 w-5 text-blue-600" />
+										<div>
+											<div class="text-sm font-medium text-blue-900">Civil Case</div>
+											<div class="text-xs text-blue-600">Legal dispute</div>
+										</div>
+									</div>
+								{/if}
+							</div>
+							
+							<!-- Individual Court Cases -->
+							<div class="space-y-4">
+								{#each entityData.court_data.cases as courtCase, index}
+									<div class="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+										<div class="flex items-start justify-between mb-3">
+											<div class="flex items-center space-x-3">
+												<!-- Case Type Badge -->
+												<span class="px-3 py-1 rounded-full text-sm font-medium border {getCourtCaseColor(courtCase.case_type)}">
+													{courtCase.case_type}
+												</span>
+												
+												<!-- Case Status -->
+												<span class="px-2 py-1 rounded text-xs font-medium border {getCourtCaseStatus(courtCase.status)}">
+													{courtCase.status}
+												</span>
+											</div>
+											
+											<!-- Case Number -->
+											{#if courtCase.case_number}
+												<div class="text-sm text-gray-600 font-mono">
+													{courtCase.case_number}
+												</div>
+											{/if}
+										</div>
+										
+										<!-- Case Details Grid -->
+										<div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+											{#if courtCase.filed_date}
+												<div class="flex items-center space-x-2">
+													<Calendar class="h-4 w-4 text-gray-500" />
+													<div>
+														<span class="text-gray-600">Filed:</span>
+														<span class="font-medium text-gray-900">{courtCase.filed_date}</span>
+													</div>
+												</div>
+											{/if}
+											
+											{#if courtCase.county}
+												<div class="flex items-center space-x-2">
+													<MapPin class="h-4 w-4 text-gray-500" />
+													<div>
+														<span class="text-gray-600">County:</span>
+														<span class="font-medium text-gray-900">{courtCase.county}</span>
+													</div>
+												</div>
+											{/if}
+											
+											{#if courtCase.plaintiff}
+												<div class="flex items-start space-x-2">
+													<Gavel class="h-4 w-4 text-gray-500 mt-0.5" />
+													<div>
+														<span class="text-gray-600">Plaintiff:</span>
+														<span class="font-medium text-gray-900">{courtCase.plaintiff}</span>
+													</div>
+												</div>
+											{/if}
+											
+											{#if courtCase.amount}
+												<div class="flex items-center space-x-2">
+													<DollarSign class="h-4 w-4 text-gray-500" />
+													<div>
+														<span class="text-gray-600">Amount:</span>
+														<span class="font-medium text-gray-900">{courtCase.amount}</span>
+													</div>
+												</div>
+											{/if}
+										</div>
+										
+										<!-- Additional Details -->
+										{#if courtCase.description}
+											<div class="mt-3 p-3 bg-gray-50 rounded-lg">
+												<div class="text-sm text-gray-700">
+													<span class="font-medium">Description:</span> {courtCase.description}
+												</div>
+											</div>
+										{/if}
+										
+										{#if courtCase.property_address}
+											<div class="mt-3 p-3 bg-blue-50 rounded-lg">
+												<div class="text-sm text-blue-700">
+													<span class="font-medium">Property:</span> {courtCase.property_address}
+												</div>
+											</div>
+										{/if}
+										
+										<!-- Court Record Link -->
+										{#if courtCase.search_url}
+											<div class="mt-4 pt-3 border-t border-gray-200">
+												<a
+													href={courtCase.search_url}
+													target="_blank"
+													rel="noopener noreferrer"
+													class="inline-flex items-center space-x-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+												>
+													<ExternalLink class="h-4 w-4" />
+													<span>View Court Records</span>
+												</a>
+											</div>
+										{/if}
+									</div>
+								{/each}
+							</div>
+							
+							<!-- Risk Indicators Summary -->
+							{#if entityData.court_data.risk_indicators.length > 0}
+								<div class="mt-4 pt-4 border-t border-red-200">
+									<div class="text-sm text-gray-600 mb-2">Legal Risk Indicators:</div>
+									<div class="flex flex-wrap gap-2">
+										{#each entityData.court_data.risk_indicators as indicator}
+											<span class="px-2 py-1 rounded text-xs font-medium bg-red-100 text-red-700 border border-red-200">
+												{indicator.replace('_', ' ').replace(':', ': ')}
+											</span>
+										{/each}
+									</div>
+								</div>
+							{/if}
+						</div>
+					</div>
+				{/if}
+
+				<!-- Domain Analysis Section -->
+				{#if entityData.domain_data}
+					<div class="mb-6">
+						<h4 class="text-lg font-semibold text-gray-900 mb-4 flex items-center space-x-2">
+							<Globe class="h-5 w-5 text-blue-600" />
+							<span>Domain Analysis ({entityData.domain_data.domain_count})</span>
+							{#if !entityData.domain_data.has_active_website}
+								<span class="text-sm bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded-full">No Website</span>
+							{/if}
+						</h4>
+						
+						<div class="bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-200 rounded-lg p-4">
+							<!-- Domain Summary -->
+							<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+								<div class="flex items-center space-x-2">
+									{#if entityData.domain_data.has_active_website}
+										<CheckCircle class="h-5 w-5 text-green-600" />
+									{:else}
+										<XCircle class="h-5 w-5 text-red-600" />
+									{/if}
+									<div>
+										<div class="text-sm font-medium text-gray-900">Website Status</div>
+										<div class="text-xs {entityData.domain_data.has_active_website ? 'text-green-600' : 'text-red-600'}">
+											{entityData.domain_data.has_active_website ? 'Active' : 'No Active Site'}
+										</div>
+									</div>
+								</div>
+								
+								<div class="flex items-center space-x-2">
+									{#if entityData.domain_data.has_privacy_protection}
+										<Eye class="h-5 w-5 text-orange-600" />
+									{:else}
+										<Shield class="h-5 w-5 text-green-600" />
+									{/if}
+									<div>
+										<div class="text-sm font-medium text-gray-900">WHOIS Privacy</div>
+										<div class="text-xs {entityData.domain_data.has_privacy_protection ? 'text-orange-600' : 'text-green-600'}">
+											{entityData.domain_data.has_privacy_protection ? 'Protected' : 'Public'}
+										</div>
+									</div>
+								</div>
+								
+								<div class="flex items-center space-x-2">
+									{#if entityData.domain_data.recent_registration}
+										<Clock class="h-5 w-5 text-yellow-600" />
+									{:else}
+										<CheckCircle class="h-5 w-5 text-green-600" />
+									{/if}
+									<div>
+										<div class="text-sm font-medium text-gray-900">Registration</div>
+										<div class="text-xs {entityData.domain_data.recent_registration ? 'text-yellow-600' : 'text-green-600'}">
+											{entityData.domain_data.recent_registration ? 'Recent' : 'Established'}
+										</div>
+									</div>
+								</div>
+								
+								<div class="flex items-center space-x-2">
+									<Globe class="h-5 w-5 text-blue-600" />
+									<div>
+										<div class="text-sm font-medium text-gray-900">Domain Count</div>
+										<div class="text-xs text-blue-600">{entityData.domain_data.domain_count} Found</div>
+									</div>
+								</div>
+							</div>
+							
+							<!-- Domain Risk Indicators -->
+							{#if entityData.domain_data.risk_indicators.length > 0}
+								<div class="mt-4 pt-4 border-t border-blue-200">
+									<div class="text-sm text-gray-600 mb-2">Domain Risk Indicators:</div>
+									<div class="flex flex-wrap gap-2">
+										{#each entityData.domain_data.risk_indicators as indicator}
+											<span class="px-2 py-1 rounded text-xs font-medium bg-yellow-100 text-yellow-700 border border-yellow-200">
+												{indicator.replace('_', ' ').replace(':', ': ')}
+											</span>
+										{/each}
+									</div>
+								</div>
+							{/if}
+						</div>
+					</div>
+				{/if}
+
+				<!-- Officer Analysis Section -->
+				{#if entityData.officer_data && (entityData.officer_data.officers.length > 0 || entityData.officer_data.cross_references.length > 0)}
+					<div class="mb-6">
+						<h4 class="text-lg font-semibold text-gray-900 mb-4 flex items-center space-x-2">
+							<Users class="h-5 w-5 text-purple-600" />
+							<span>Officer Analysis ({entityData.officer_data.officers.length})</span>
+							{#if entityData.officer_data.has_problematic_officers}
+								<span class="text-sm bg-red-100 text-red-800 px-2 py-0.5 rounded-full">Risk Found</span>
+							{/if}
+						</h4>
+						
+						<div class="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-lg p-4">
+							<!-- Officer Summary -->
+							<div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
+								<div class="flex items-center space-x-2">
+									<Users class="h-5 w-5 text-purple-600" />
+									<div>
+										<div class="text-sm font-medium text-gray-900">Officers Found</div>
+										<div class="text-xs text-purple-600">{entityData.officer_data.officers.length} Active</div>
+									</div>
+								</div>
+								
+								<div class="flex items-center space-x-2">
+									<Building class="h-5 w-5 text-blue-600" />
+									<div>
+										<div class="text-sm font-medium text-gray-900">Connected Entities</div>
+										<div class="text-xs text-blue-600">{entityData.officer_data.total_entities_connected} Total</div>
+									</div>
+								</div>
+								
+								<div class="flex items-center space-x-2">
+									{#if entityData.officer_data.has_shared_officers}
+										<AlertTriangle class="h-5 w-5 text-orange-600" />
+									{:else}
+										<CheckCircle class="h-5 w-5 text-green-600" />
+									{/if}
+									<div>
+										<div class="text-sm font-medium text-gray-900">Cross-References</div>
+										<div class="text-xs {entityData.officer_data.has_shared_officers ? 'text-orange-600' : 'text-green-600'}">
+											{entityData.officer_data.cross_references.length} Found
+										</div>
+									</div>
+								</div>
+							</div>
+							
+							<!-- Officer Risk Indicators -->
+							{#if entityData.officer_data.risk_indicators.length > 0}
+								<div class="mt-4 pt-4 border-t border-purple-200">
+									<div class="text-sm text-gray-600 mb-2">Officer Risk Indicators:</div>
+									<div class="flex flex-wrap gap-2">
+										{#each entityData.officer_data.risk_indicators as indicator}
+											<span class="px-2 py-1 rounded text-xs font-medium bg-red-100 text-red-700 border border-red-200">
+												{indicator.replace('_', ' ').replace(':', ': ')}
+											</span>
+										{/each}
+									</div>
+								</div>
+							{/if}
+						</div>
+					</div>
+				{/if}
+
+				<!-- Grants Analysis Section -->
+				{#if entityData.grants_data && entityData.grants_data.total_awards > 0}
+					<div class="mb-6">
+						<h4 class="text-lg font-semibold text-gray-900 mb-4 flex items-center space-x-2">
+							<CreditCard class="h-5 w-5 text-green-600" />
+							<span>Grant & Contract History ({entityData.grants_data.total_awards})</span>
+							{#if entityData.grants_data.has_compliance_issues}
+								<span class="text-sm bg-red-100 text-red-800 px-2 py-0.5 rounded-full">Compliance Issues</span>
+							{/if}
+						</h4>
+						
+						<div class="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg p-4">
+							<!-- Grants Summary -->
+							<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+								<div class="flex items-center space-x-2">
+									<DollarSign class="h-5 w-5 text-green-600" />
+									<div>
+										<div class="text-sm font-medium text-gray-900">Total Funding</div>
+										<div class="text-xs text-green-600">${entityData.grants_data.total_funding.toLocaleString()}</div>
+									</div>
+								</div>
+								
+								<div class="flex items-center space-x-2">
+									<Building class="h-5 w-5 text-blue-600" />
+									<div>
+										<div class="text-sm font-medium text-gray-900">Federal Funding</div>
+										<div class="text-xs {entityData.grants_data.has_federal_funding ? 'text-blue-600' : 'text-gray-500'}">
+											{entityData.grants_data.has_federal_funding ? 'Yes' : 'None'}
+										</div>
+									</div>
+								</div>
+								
+								<div class="flex items-center space-x-2">
+									<MapPin class="h-5 w-5 text-purple-600" />
+									<div>
+										<div class="text-sm font-medium text-gray-900">State Funding</div>
+										<div class="text-xs {entityData.grants_data.has_state_funding ? 'text-purple-600' : 'text-gray-500'}">
+											{entityData.grants_data.has_state_funding ? 'Yes' : 'None'}
+										</div>
+									</div>
+								</div>
+								
+								<div class="flex items-center space-x-2">
+									{#if entityData.grants_data.has_compliance_issues}
+										<AlertTriangle class="h-5 w-5 text-red-600" />
+									{:else}
+										<CheckCircle class="h-5 w-5 text-green-600" />
+									{/if}
+									<div>
+										<div class="text-sm font-medium text-gray-900">Compliance</div>
+										<div class="text-xs {entityData.grants_data.has_compliance_issues ? 'text-red-600' : 'text-green-600'}">
+											{entityData.grants_data.has_compliance_issues ? 'Issues Found' : 'Clean Record'}
+										</div>
+									</div>
+								</div>
+							</div>
+							
+							<!-- Grant Risk Indicators -->
+							{#if entityData.grants_data.risk_indicators.length > 0}
+								<div class="mt-4 pt-4 border-t border-green-200">
+									<div class="text-sm text-gray-600 mb-2">Grant Risk Indicators:</div>
+									<div class="flex flex-wrap gap-2">
+										{#each entityData.grants_data.risk_indicators as indicator}
+											<span class="px-2 py-1 rounded text-xs font-medium bg-yellow-100 text-yellow-700 border border-yellow-200">
+												{indicator.replace('_', ' ').replace(':', ': ')}
+											</span>
+										{/each}
+									</div>
+								</div>
+							{/if}
+						</div>
+					</div>
+				{/if}
+
+				<!-- Monitoring Section -->
+				{#if entityData.monitoring_data && (entityData.monitoring_data.active_alert_count > 0 || entityData.monitoring_data.total_changes > 0)}
+					<div class="mb-6">
+						<h4 class="text-lg font-semibold text-gray-900 mb-4 flex items-center space-x-2">
+							<Bell class="h-5 w-5 text-orange-600" />
+							<span>Monitoring & Alerts</span>
+							{#if entityData.monitoring_data.active_alert_count > 0}
+								<span class="text-sm bg-red-100 text-red-800 px-2 py-0.5 rounded-full">{entityData.monitoring_data.active_alert_count} Active</span>
+							{/if}
+						</h4>
+						
+						<div class="bg-gradient-to-r from-orange-50 to-red-50 border border-orange-200 rounded-lg p-4">
+							<!-- Monitoring Summary -->
+							<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+								<div class="flex items-center space-x-2">
+									<Bell class="h-5 w-5 text-orange-600" />
+									<div>
+										<div class="text-sm font-medium text-gray-900">Active Alerts</div>
+										<div class="text-xs text-orange-600">{entityData.monitoring_data.active_alert_count} Current</div>
+									</div>
+								</div>
+								
+								<div class="flex items-center space-x-2">
+									<TrendingUp class="h-5 w-5 text-blue-600" />
+									<div>
+										<div class="text-sm font-medium text-gray-900">Total Changes</div>
+										<div class="text-xs text-blue-600">{entityData.monitoring_data.total_changes} Detected</div>
+									</div>
+								</div>
+								
+								<div class="flex items-center space-x-2">
+									<Clock class="h-5 w-5 text-purple-600" />
+									<div>
+										<div class="text-sm font-medium text-gray-900">Last Scan</div>
+										<div class="text-xs text-purple-600">{new Date(entityData.monitoring_data.last_scan).toLocaleDateString()}</div>
+									</div>
+								</div>
+								
+								<div class="flex items-center space-x-2">
+									<Shield class="h-5 w-5 text-gray-600" />
+									<div>
+										<div class="text-sm font-medium text-gray-900">Monitoring Score</div>
+										<div class="text-xs {entityData.monitoring_data.monitoring_score > 50 ? 'text-red-600' : entityData.monitoring_data.monitoring_score > 25 ? 'text-yellow-600' : 'text-green-600'}">
+											{entityData.monitoring_data.monitoring_score}/100
+										</div>
+									</div>
+								</div>
+							</div>
 						</div>
 					</div>
 				{/if}
@@ -409,6 +1035,123 @@
 								</div>
 							</div>
 							
+							<!-- Parcel ID -->
+							{#if entityData.property.parcel_id}
+								<div class="mt-4 pt-4 border-t border-blue-200">
+									<div class="flex items-center space-x-2 text-sm">
+										<FileText class="h-4 w-4 text-gray-500" />
+										<span class="text-gray-600">Parcel ID:</span>
+										<span class="font-mono text-gray-900 bg-gray-100 px-2 py-1 rounded">{entityData.property.parcel_id}</span>
+									</div>
+								</div>
+							{/if}
+							
+							<!-- County Offices Section -->
+							{#if entityData.property.offices && Object.keys(entityData.property.offices).length > 0}
+								<div class="mt-4 pt-4 border-t border-blue-200">
+									<h5 class="text-sm font-semibold text-gray-900 mb-3 flex items-center space-x-2">
+										<Building class="h-4 w-4 text-blue-600" />
+										<span>🏢 {entityData.property.county} County Offices</span>
+										<span class="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">Official Links</span>
+									</h5>
+									
+									<div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+										{#if entityData.property.offices.property_appraiser}
+											<a
+												href={entityData.property.verification_links?.property_direct || entityData.property.offices.property_appraiser.search_url}
+												target="_blank"
+												rel="noopener noreferrer"
+												class="group flex flex-col p-4 border-2 border-blue-200 rounded-xl hover:border-blue-400 hover:bg-gradient-to-br hover:from-blue-50 hover:to-indigo-50 transition-all duration-200 hover:shadow-md"
+												title={entityData.property.offices.property_appraiser.description}
+											>
+												<div class="flex items-center space-x-3 mb-2">
+													<div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center group-hover:bg-blue-200 transition-colors">
+														<FileText class="h-4 w-4 text-blue-600" />
+													</div>
+													<div class="flex-1">
+														<div class="font-medium text-gray-900 text-sm">Property Appraiser</div>
+														<div class="text-xs text-blue-600">{entityData.property.offices.property_appraiser.name}</div>
+													</div>
+													<ExternalLink class="h-4 w-4 text-gray-400 group-hover:text-blue-500 transition-colors" />
+												</div>
+												<div class="text-xs text-gray-600 mb-3">{entityData.property.offices.property_appraiser.description}</div>
+												<div class="flex items-center space-x-2 text-xs text-gray-500">
+													<div class="w-2 h-2 bg-green-400 rounded-full"></div>
+													<span>Active System</span>
+												</div>
+											</a>
+										{/if}
+										
+										{#if entityData.property.offices.tax_collector}
+											<a
+												href={entityData.property.verification_links?.tax_direct || entityData.property.offices.tax_collector.search_url}
+												target="_blank"
+												rel="noopener noreferrer"
+												class="group flex flex-col p-4 border-2 border-green-200 rounded-xl hover:border-green-400 hover:bg-gradient-to-br hover:from-green-50 hover:to-emerald-50 transition-all duration-200 hover:shadow-md"
+												title={entityData.property.offices.tax_collector.description}
+											>
+												<div class="flex items-center space-x-3 mb-2">
+													<div class="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center group-hover:bg-green-200 transition-colors">
+														<DollarSign class="h-4 w-4 text-green-600" />
+													</div>
+													<div class="flex-1">
+														<div class="font-medium text-gray-900 text-sm">Tax Collector</div>
+														<div class="text-xs text-green-600">{entityData.property.offices.tax_collector.name}</div>
+													</div>
+													<ExternalLink class="h-4 w-4 text-gray-400 group-hover:text-green-500 transition-colors" />
+												</div>
+												<div class="text-xs text-gray-600 mb-3">{entityData.property.offices.tax_collector.description}</div>
+												<div class="flex items-center space-x-2 text-xs text-gray-500">
+													<div class="w-2 h-2 bg-green-400 rounded-full"></div>
+													<span>Payment Portal</span>
+												</div>
+											</a>
+										{/if}
+										
+										{#if entityData.property.offices.clerk_of_court}
+											<a
+												href={entityData.property.verification_links?.court_search || entityData.property.offices.clerk_of_court.search_url}
+												target="_blank"
+												rel="noopener noreferrer"
+												class="group flex flex-col p-4 border-2 border-purple-200 rounded-xl hover:border-purple-400 hover:bg-gradient-to-br hover:from-purple-50 hover:to-pink-50 transition-all duration-200 hover:shadow-md"
+												title={entityData.property.offices.clerk_of_court.description}
+											>
+												<div class="flex items-center space-x-3 mb-2">
+													<div class="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center group-hover:bg-purple-200 transition-colors">
+														<Scale class="h-4 w-4 text-purple-600" />
+													</div>
+													<div class="flex-1">
+														<div class="font-medium text-gray-900 text-sm">Clerk of Court</div>
+														<div class="text-xs text-purple-600">{entityData.property.offices.clerk_of_court.name}</div>
+													</div>
+													<ExternalLink class="h-4 w-4 text-gray-400 group-hover:text-purple-500 transition-colors" />
+												</div>
+												<div class="text-xs text-gray-600 mb-3">{entityData.property.offices.clerk_of_court.description}</div>
+												<div class="flex items-center space-x-2 text-xs text-gray-500">
+													<div class="w-2 h-2 bg-green-400 rounded-full"></div>
+													<span>Records Search</span>
+												</div>
+											</a>
+										{/if}
+									</div>
+									
+									{#if entityData.property.verification_links && entityData.property.parcel_id}
+										<div class="mt-4 p-3 bg-gradient-to-r from-indigo-50 to-blue-50 border border-indigo-200 rounded-lg">
+											<div class="flex items-start space-x-2">
+												<Info class="h-4 w-4 text-indigo-600 mt-0.5" />
+												<div class="text-sm">
+													<div class="font-medium text-indigo-900 mb-1">Direct Property Access</div>
+													<div class="text-indigo-700 text-xs">
+														These links include parcel ID <span class="font-mono bg-white px-1 rounded">{entityData.property.parcel_id}</span> for instant property lookup.
+														Click any office above to jump directly to this property's official records.
+													</div>
+												</div>
+											</div>
+										</div>
+									{/if}
+								</div>
+							{/if}
+							
 							<!-- View Property Record -->
 							<div class="mt-4 pt-4 border-t border-blue-200">
 								<a
@@ -492,28 +1235,34 @@
 					<h3 class="text-lg font-medium text-gray-900 mb-2">Try searching for:</h3>
 					<div class="flex flex-wrap justify-center gap-2">
 						<button
-							on:click={() => { searchQuery = 'Florida Educational Charitable Trust'; searchEntity(); }}
-							class="px-3 py-1 bg-green-100 text-green-700 rounded hover:bg-green-200 transition-colors"
-						>
-							Charitable Trust
-						</button>
-						<button
-							on:click={() => { searchQuery = 'Offshore Investment Business Trust LLC'; searchEntity(); }}
+							on:click={() => { searchQuery = 'Sunshine Holdings LLC'; searchEntity(); }}
 							class="px-3 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors"
 						>
-							High-Risk Business Trust
+							🏛️ Foreclosure Case
+						</button>
+						<button
+							on:click={() => { searchQuery = 'Business Investment Trust LLC'; searchEntity(); }}
+							class="px-3 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors"
+						>
+							⚖️ DBPR Regulatory Action
+						</button>
+						<button
+							on:click={() => { searchQuery = 'Offshore Holdings Trust'; searchEntity(); }}
+							class="px-3 py-1 bg-purple-100 text-purple-700 rounded hover:bg-purple-200 transition-colors"
+						>
+							💰 Bankruptcy Case
+						</button>
+						<button
+							on:click={() => { searchQuery = 'Coastal Development Trust'; searchEntity(); }}
+							class="px-3 py-1 bg-orange-100 text-orange-700 rounded hover:bg-orange-200 transition-colors"
+						>
+							🏛️ Tax Lien Case
 						</button>
 						<button
 							on:click={() => { searchQuery = 'Smith Family Living Trust'; searchEntity(); }}
-							class="px-3 py-1 bg-purple-100 text-purple-700 rounded hover:bg-purple-200 transition-colors"
+							class="px-3 py-1 bg-green-100 text-green-700 rounded hover:bg-green-200 transition-colors"
 						>
-							Family Trust
-						</button>
-						<button
-							on:click={() => { searchQuery = 'ABC Corporation'; searchEntity(); }}
-							class="px-3 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors"
-						>
-							Villages Holdings
+							✅ Clean Trust
 						</button>
 					</div>
 				</div>
@@ -542,22 +1291,25 @@
 				<div>
 					<h3 class="text-sm font-semibold text-gray-900 mb-4">How We Score Risk</h3>
 					<ul class="space-y-2 text-xs text-gray-600">
-						<li>• Missing EIN: +20 points</li>
-						<li>• PO Box address: +15 points</li>
-						<li>• Delinquent taxes: +20 points</li>
-						<li>• Vacant property: +15 points</li>
-						<li>• Mail drop service: +25 points</li>
+						<li>• Trust & Corporate Analysis</li>
+						<li>• Court Case History</li>
+						<li>• Domain & Web Presence</li>
+						<li>• Officer Cross-References</li>
+						<li>• Grant Compliance Issues</li>
+						<li>• Automated Change Detection</li>
 					</ul>
 				</div>
 				
 				<!-- Data Sources -->
 				<div>
-					<h3 class="text-sm font-semibold text-gray-900 mb-4">Data Sources</h3>
+					<h3 class="text-sm font-semibled text-gray-900 mb-4">Comprehensive Data</h3>
 					<ul class="space-y-2 text-xs text-gray-600">
-						<li>• Florida Division of Corporations (Sunbiz)</li>
-						<li>• County Property Appraiser Records</li>
-						<li>• IRS Exempt Organization Database</li>
-						<li>• Small Business Administration</li>
+						<li>• Corporate & Trust Records</li>
+						<li>• Court Case Databases</li>
+						<li>• WHOIS & Domain Registry</li>
+						<li>• Officer Cross-References</li>
+						<li>• Federal & State Grants</li>
+						<li>• Automated Monitoring</li>
 					</ul>
 				</div>
 				

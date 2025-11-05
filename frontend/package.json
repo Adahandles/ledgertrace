@@ -11,11 +11,16 @@
     "@sveltejs/adapter-static": "^3.0.10",
     "@sveltejs/kit": "^2.0.0",
     "@sveltejs/vite-plugin-svelte": "^3.0.0",
+    "autoprefixer": "^10.4.16",
+    "postcss": "^8.4.32",
     "svelte": "^4.2.7",
+    "tailwindcss": "^3.3.6",
     "vite": "^5.0.3"
   },
   "type": "module",
   "dependencies": {
+    "flowbite": "^2.2.1",
+    "flowbite-svelte": "^0.44.24",
     "lucide-svelte": "^0.292.0"
   }
 }

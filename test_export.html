@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LedgerTrace Export Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 50px auto; padding: 20px; }
+        .container { background: #f9f9f9; padding: 20px; border-radius: 8px; }
+        button { background: #3b82f6; color: white; padding: 12px 24px; border: none; border-radius: 6px; cursor: pointer; margin: 10px; }
+        button:hover { background: #2563eb; }
+        button:disabled { background: #9ca3af; cursor: not-allowed; }
+        .results { margin-top: 20px; padding: 15px; background: white; border-radius: 6px; }
+        .error { color: #dc2626; background: #fef2f2; padding: 10px; border-radius: 4px; }
+        .success { color: #059669; background: #f0fdf4; padding: 10px; border-radius: 4px; }
+        input { padding: 8px; margin: 5px; width: 200px; border: 1px solid #ddd; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧠 LedgerTrace Export Test</h1>
+        <p>Testing the PDF/JSON export functionality with backend at <code>http://localhost:8002</code></p>
+        
+        <div>
+            <input type="text" id="entityName" placeholder="Entity Name" value="Test Export Entity">
+            <input type="text" id="entityAddress" placeholder="Address" value="123 Test St, Orlando, FL">
+            <input type="text" id="entityCounty" placeholder="County" value="Orange">
+        </div>
+        
+        <div>
+            <button onclick="exportPDF()" id="pdfBtn">📄 Download PDF Report</button>
+            <button onclick="exportJSON()" id="jsonBtn">🧬 Download JSON Data</button>
+        </div>
+        
+        <div id="results" class="results" style="display: none;"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8002';
+        
+        async function exportReport(format) {
+            const entityName = document.getElementById('entityName').value;
+            const entityAddress = document.getElementById('entityAddress').value;
+            const entityCounty = document.getElementById('entityCounty').value;
+            const resultsDiv = document.getElementById('results');
+            const btn = format === 'pdf' ? document.getElementById('pdfBtn') : document.getElementById('jsonBtn');
+            
+            btn.disabled = true;
+            btn.textContent = format === 'pdf' ? '⏳ Generating PDF...' : '⏳ Generating JSON...';
+            resultsDiv.style.display = 'block';
+            resultsDiv.innerHTML = `<div>🔄 Generating ${format.toUpperCase()} export for "${entityName}"...</div>`;
+            
+            try {
+                const exportRequest = {
+                    entity_input: {
+                        name: entityName,
+                        address: entityAddress,
+                        county: entityCounty,
+                        officers: [],
+                        ein: null
+                    },
+                    export_format: format,
+                    include_sections: ["entity_info", "risk_score", "county_offices", "court_activity", "domain_info"],
+                    template_style: "professional"
+                };
+                
+                const response = await fetch(`${API_BASE}/export`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(exportRequest)
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`Export failed: ${response.statusText}`);
+                }
+                
+                const result = await response.json();
+                
+                if (!result.success) {
+                    throw new Error(result.error_message || 'Export generation failed');
+                }
+                
+                resultsDiv.innerHTML = `
+                    <div class="success">
+                        <h3>✅ Export Successful!</h3>
+                        <p><strong>File:</strong> ${result.file_name}</p>
+                        <p><strong>Size:</strong> ${result.file_size} bytes</p>
+                        <p><strong>Risk Score:</strong> ${result.risk_score}/100</p>
+                        <a href="${API_BASE}${result.download_url}" download="${result.file_name}" 
+                           style="background: #059669; color: white; padding: 8px 16px; text-decoration: none; border-radius: 4px;">
+                           📥 Download ${format.toUpperCase()}
+                        </a>
+                    </div>
+                `;
+                
+            } catch (error) {
+                resultsDiv.innerHTML = `<div class="error">❌ Error: ${error.message}</div>`;
+            } finally {
+                btn.disabled = false;
+                btn.textContent = format === 'pdf' ? '📄 Download PDF Report' : '🧬 Download JSON Data';
+            }
+        }
+        
+        async function exportPDF() {
+            await exportReport('pdf');
+        }
+        
+        async function exportJSON() {
+            await exportReport('json');
+        }
+    </script>
+</body>
+</html>

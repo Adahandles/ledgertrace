@@ -1,0 +1,144 @@
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
+
+/* Web3-inspired global styles */
+@layer base {
+  html {
+    @apply scroll-smooth;
+  }
+  
+  body {
+    @apply font-sans antialiased transition-colors duration-300;
+  }
+  
+  /* Dark mode styles */
+  .dark body {
+    @apply bg-dark-900 text-white;
+  }
+  
+  .light body {
+    @apply bg-gray-50 text-gray-900;
+  }
+}
+
+@layer components {
+  /* Cyber-themed button styles */
+  .btn-cyber {
+    @apply inline-flex items-center px-6 py-3 rounded-xl font-medium transition-all duration-300 transform hover:scale-105 active:scale-95;
+    background: linear-gradient(135deg, #14b8a6, #0ea5e9);
+    box-shadow: 0 4px 15px rgba(45, 212, 191, 0.3);
+  }
+  
+  .btn-cyber:hover {
+    @apply -translate-y-1;
+    box-shadow: 0 8px 25px rgba(45, 212, 191, 0.4);
+  }
+  
+  .btn-secondary {
+    @apply bg-dark-800 text-white border border-primary-500/20 hover:bg-dark-700 hover:border-primary-400/30 transition-all duration-300;
+  }
+  
+  /* Entity card styles */
+  .entity-card {
+    @apply bg-dark-800/90 backdrop-blur-xl border border-primary-500/20 rounded-2xl p-6 transition-all duration-300 hover:border-primary-400/40 hover:shadow-glow;
+  }
+  
+  .entity-card-light {
+    @apply bg-white/90 backdrop-blur-xl border border-gray-200 rounded-2xl p-6 transition-all duration-300 hover:border-primary-400/40 hover:shadow-lg;
+  }
+  
+  /* Risk bar animations */
+  .risk-bar {
+    @apply h-3 rounded-full overflow-hidden transition-all duration-1000 ease-out;
+  }
+  
+  .risk-fill {
+    @apply h-full transition-all duration-1500 ease-out animate-progress-fill;
+  }
+  
+  /* Badge styles */
+  .badge-danger {
+    @apply inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-danger-500/20 text-danger-400 border border-danger-500/30;
+  }
+  
+  .badge-warning {
+    @apply inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-warning-500/20 text-warning-400 border border-warning-500/30;
+  }
+  
+  .badge-success {
+    @apply inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-success-500/20 text-success-400 border border-success-500/30;
+  }
+  
+  .badge-info {
+    @apply inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-accent-500/20 text-accent-400 border border-accent-500/30;
+  }
+  
+  /* Glass effect containers */
+  .glass-panel {
+    @apply bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl;
+  }
+  
+  .glass-panel-light {
+    @apply bg-white/80 backdrop-blur-xl border border-gray-200/50 rounded-2xl;
+  }
+  
+  /* Gradient text */
+  .text-cyber-gradient {
+    @apply bg-gradient-to-r from-primary-400 to-accent-400 bg-clip-text text-transparent;
+  }
+  
+  /* Navigation styles */
+  .nav-item {
+    @apply px-4 py-2 rounded-lg transition-all duration-200 hover:bg-primary-500/10 hover:text-primary-400;
+  }
+  
+  .nav-item-active {
+    @apply bg-primary-500/20 text-primary-400 border border-primary-500/30;
+  }
+}
+
+@layer utilities {
+  /* Custom scrollbar for dark mode */
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar-track {
+    @apply bg-dark-800;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    @apply bg-primary-500/30 rounded-full;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    @apply bg-primary-500/50;
+  }
+  
+  /* Animation utilities */
+  .animate-fade-in {
+    animation: fadeIn 0.5s ease-out forwards;
+  }
+  
+  .animate-slide-up {
+    animation: slideUp 0.3s ease-out forwards;
+  }
+  
+  .animate-glow {
+    animation: glowPulse 2s ease-in-out infinite alternate;
+  }
+  
+  /* Responsive text sizing */
+  .text-responsive-sm {
+    @apply text-sm md:text-base lg:text-lg;
+  }
+  
+  .text-responsive-lg {
+    @apply text-lg md:text-xl lg:text-2xl;
+  }
+  
+  .text-responsive-xl {
+    @apply text-xl md:text-2xl lg:text-3xl;
+  }
+}

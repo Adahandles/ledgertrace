@@ -1,0 +1,78 @@
+{
+  "report_metadata": {
+    "entity_name": "JSON Test Entity LLC",
+    "generated_at": "2025-11-05T09:04:52.903877+00:00",
+    "analysis_timestamp": "2025-11-05_09-04-52",
+    "report_version": "1.0",
+    "export_format": "json",
+    "sections_included": [
+      "entity_info",
+      "county_offices",
+      "risk_score"
+    ]
+  },
+  "entity_input": {
+    "name": "JSON Test Entity LLC",
+    "address": "888 Data St, Miami, FL 33101",
+    "ein": null,
+    "officers": [],
+    "county": "Miami-Dade"
+  },
+  "risk_assessment": {
+    "overall_risk_score": 65,
+    "risk_level": "Medium Risk",
+    "anomaly_count": 3,
+    "anomalies": [
+      "⚠️ Entity involved in 1 high-dollar court case(s) (>$100k)",
+      "no_web_presence",
+      "⚠️ No EIN provided."
+    ]
+  },
+  "analysis_results": {
+    "entity_classification": {
+      "is_trust": false,
+      "trust_types": [],
+      "match_terms": [],
+      "risk_indicators": [],
+      "requires_regulation": false,
+      "high_risk": false
+    },
+    "property_analysis": {
+      "county": "Miami-Dade",
+      "address": "888 Data St, Miami, FL 33101",
+      "parcel_id": "1598-902",
+      "owner_name": "Property Owner LLC",
+      "land_use": "Residential",
+      "market_value": "$250,000",
+      "delinquent_taxes": false,
+      "source_url": "https://www.miamidade.gov/pa/",
+      "county_offices": {
+        "property_appraiser": {
+          "name": "Miami-Dade Property Appraiser",
+          "url": "https://www.miamidade.gov/pa/",
+          "search_url": "https://www.miamidade.gov/Apps/PA/PApublicServiceMain/#!/",
+          "description": "Property records, assessments, and appeals"
+        },
+        "tax_collector": {
+          "name": "Miami-Dade Tax Collector",
+          "url": "https://www.miamidade.gov/taxcollector/",
+          "search_url": "https://www.miamidade.gov/taxcollector/property_search.asp",
+          "description": "Tax bills, payments, and delinquency status"
+        },
+        "clerk_of_court": {
+          "name": "Miami-Dade Clerk of Courts",
+          "url": "https://www2.miami-dadeclerk.com/",
+          "search_url": "https://www2.miami-dadeclerk.com/PremierServices/",
+          "description": "Court records, liens, and legal documents"
+        }
+      },
+      "verification_links": {
+        "property_search": "https://www.miamidade.gov/Apps/PA/PApublicServiceMain/#!/?search=888%20Data%20St,%20Miami,%20FL%2033101",
+        "tax_search": "https://www.miamidade.gov/taxcollector/property_search.asp?parcel=1598-902",
+        "property_direct": "https://www.miamidade.gov/Apps/PA/PApublicServiceMain/#!/?parcel=1598-902",
+        "tax_direct": "https://www.miamidade.gov/taxcollector/property_search.asp?parcel=1598-902",
+        "court_search": "https://www2.miami-dadeclerk.com/PremierServices/"
+      }
+    }
+  }
+}

@@ -1,0 +1,107 @@
+{
+  "report_metadata": {
+    "entity_name": "Miami Business Trust LLC",
+    "generated_at": "2025-11-05T08:39:52.125611+00:00",
+    "analysis_timestamp": "2025-11-05_08-39-52",
+    "report_version": "1.0",
+    "export_format": "json",
+    "sections_included": [
+      "entity_info",
+      "risk_score",
+      "county_offices",
+      "court_activity",
+      "domain_info"
+    ]
+  },
+  "entity_input": {
+    "name": "Miami Business Trust LLC",
+    "address": "2000 Corporate Plaza, Miami, FL 33134",
+    "ein": "12-3456789",
+    "officers": [
+      "Michael Torres",
+      "Angela Rodriguez"
+    ],
+    "county": "Miami-Dade"
+  },
+  "risk_assessment": {
+    "overall_risk_score": 35,
+    "risk_level": "Medium Risk",
+    "anomaly_count": 3,
+    "anomalies": [
+      "⚠️ Entity appears to be a high-risk trust type: Business Trust",
+      "⚠️ Unusual trust structure: combines trust with LLC",
+      "no_web_presence"
+    ]
+  },
+  "analysis_results": {
+    "entity_classification": {
+      "is_trust": true,
+      "trust_types": [
+        "Business Trust"
+      ],
+      "match_terms": [
+        "business trust"
+      ],
+      "risk_indicators": [
+        "high_risk_type:Business Trust",
+        "trust_with_llc"
+      ],
+      "requires_regulation": false,
+      "high_risk": true
+    },
+    "property_analysis": {
+      "county": "Miami-Dade",
+      "address": "2000 Corporate Plaza, Miami, FL 33134",
+      "parcel_id": "7056-590",
+      "owner_name": "Commercial Properties LLC",
+      "land_use": "Commercial Office",
+      "market_value": "$1,200,000",
+      "delinquent_taxes": false,
+      "source_url": "https://www.miamidade.gov/pa/",
+      "county_offices": {
+        "property_appraiser": {
+          "name": "Miami-Dade Property Appraiser",
+          "url": "https://www.miamidade.gov/pa/",
+          "search_url": "https://www.miamidade.gov/Apps/PA/PApublicServiceMain/#!/",
+          "description": "Property records, assessments, and appeals"
+        },
+        "tax_collector": {
+          "name": "Miami-Dade Tax Collector",
+          "url": "https://www.miamidade.gov/taxcollector/",
+          "search_url": "https://www.miamidade.gov/taxcollector/property_search.asp",
+          "description": "Tax bills, payments, and delinquency status"
+        },
+        "clerk_of_court": {
+          "name": "Miami-Dade Clerk of Courts",
+          "url": "https://www2.miami-dadeclerk.com/",
+          "search_url": "https://www2.miami-dadeclerk.com/PremierServices/",
+          "description": "Court records, liens, and legal documents"
+        }
+      },
+      "verification_links": {
+        "property_search": "https://www.miamidade.gov/Apps/PA/PApublicServiceMain/#!/?search=2000%20Corporate%20Plaza,%20Miami,%20FL%2033134",
+        "tax_search": "https://www.miamidade.gov/taxcollector/property_search.asp?parcel=7056-590",
+        "property_direct": "https://www.miamidade.gov/Apps/PA/PApublicServiceMain/#!/?parcel=7056-590",
+        "tax_direct": "https://www.miamidade.gov/taxcollector/property_search.asp?parcel=7056-590",
+        "court_search": "https://www2.miami-dadeclerk.com/PremierServices/"
+      }
+    },
+    "court_analysis": {
+      "case_count": 0,
+      "has_foreclosure": false,
+      "has_tax_lien": false,
+      "has_civil": false,
+      "has_bankruptcy": false,
+      "risk_indicators": [],
+      "cases": []
+    },
+    "domain_analysis": {
+      "domain_count": 0,
+      "has_active_website": false,
+      "risk_indicators": [
+        "no_web_presence"
+      ],
+      "domains": []
+    }
+  }
+}

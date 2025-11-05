@@ -5,6 +5,7 @@ Integrates with county property appraiser websites to fetch property information
 import re
 from typing import Dict, Optional, Any
 from urllib.parse import quote
+from .county_offices import get_county_offices, get_property_search_url, get_tax_search_url
 
 def get_property_info(address: str, county: str = None) -> Dict[str, Any]:
     """
@@ -43,6 +44,11 @@ def detect_county_from_address(address: str) -> str:
         'lady lake': 'Lake', 
         'leesburg': 'Lake',
         'ocala': 'Marion',
+        'belleview': 'Marion',
+        'dunnellon': 'Marion',
+        'palatka': 'Putnam',
+        'interlachen': 'Putnam',
+        'crescent city': 'Putnam',
         'gainesville': 'Alachua',
         'tampa': 'Hillsborough',
         'orlando': 'Orange',
@@ -63,15 +69,40 @@ def generate_mock_property_data(address: str, county: str) -> Dict[str, Any]:
     
     address_lower = address.lower()
     
+    # Get county office information
+    county_offices_data = get_county_offices(county)
+    
+    # Generate a mock parcel ID for demo
+    parcel_id = f"{abs(hash(address)) % 10000:04d}-{abs(hash(county)) % 1000:03d}"
+    
+    # Convert county offices to dictionary format for API compatibility
+    offices = {}
+    verification_links = {}
+    
+    if county_offices_data:
+        # Keep as plain dictionaries - no Pydantic models needed
+        offices = county_offices_data
+        
+        verification_links = {
+            'property_search': get_property_search_url(county, address),
+            'tax_search': get_tax_search_url(county, parcel_id),
+            'property_direct': f"{county_offices_data['property_appraiser']['search_url']}?parcel={parcel_id}",
+            'tax_direct': f"{county_offices_data['tax_collector']['search_url']}?parcel={parcel_id}",
+            'court_search': county_offices_data['clerk_of_court']['search_url']
+        }
+    
     # Base property data
     property_data = {
         'county': county,
         'address': address,
+        'parcel_id': parcel_id,
         'source_url': get_county_appraiser_url(county),
         'delinquent_taxes': False,
         'land_use': 'Residential',
         'market_value': '$250,000',
-        'owner_name': 'Property Owner LLC'
+        'owner_name': 'Property Owner LLC',
+        'offices': offices,
+        'verification_links': verification_links
     }
     
     # Risk indicators based on address patterns

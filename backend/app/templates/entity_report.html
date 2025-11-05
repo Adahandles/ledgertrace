@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LedgerTrace Entity Risk Report - {{ entity_name }}</title>
+    <style>
+        /* Professional Report Styling */
+        @page {
+            size: A4;
+            margin: 1in 0.75in;
+            @bottom-right {
+                content: "Page " counter(page) " of " counter(pages);
+                font-size: 10px;
+                color: #666;
+            }
+        }
+
+        body {
+            font-family: 'Arial', 'Helvetica', sans-serif;
+            line-height: 1.4;
+            color: #333;
+            font-size: 11px;
+            margin: 0;
+            padding: 0;
+        }
+
+        .header {
+            text-align: center;
+            padding: 20px 0;
+            border-bottom: 3px solid #2563eb;
+            margin-bottom: 25px;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            color: #1e40af;
+            margin: 0;
+            font-weight: bold;
+        }
+
+        .header .subtitle {
+            font-size: 14px;
+            color: #6b7280;
+            margin: 5px 0 0 0;
+        }
+
+        .report-meta {
+            background: #f8fafc;
+            padding: 15px;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            margin-bottom: 25px;
+        }
+
+        .report-meta table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .report-meta td {
+            padding: 5px;
+            font-size: 10px;
+        }
+
+        .report-meta .label {
+            font-weight: bold;
+            color: #374151;
+            width: 120px;
+        }
+
+        .risk-score-section {
+            text-align: center;
+            padding: 20px;
+            margin: 20px 0;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+        }
+
+        .risk-score {
+            font-size: 48px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+
+        .risk-low { color: #059669; background-color: #d1fae5; }
+        .risk-medium { color: #d97706; background-color: #fed7aa; }
+        .risk-high { color: #dc2626; background-color: #fecaca; }
+
+        .section {
+            margin: 25px 0;
+            page-break-inside: avoid;
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #1f2937;
+            border-bottom: 2px solid #e5e7eb;
+            padding-bottom: 8px;
+            margin-bottom: 15px;
+        }
+
+        .subsection-title {
+            font-size: 13px;
+            font-weight: bold;
+            color: #374151;
+            margin: 15px 0 8px 0;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0;
+        }
+
+        .data-table th {
+            background-color: #f3f4f6;
+            padding: 8px;
+            text-align: left;
+            font-weight: bold;
+            font-size: 10px;
+            border: 1px solid #d1d5db;
+        }
+
+        .data-table td {
+            padding: 6px 8px;
+            border: 1px solid #d1d5db;
+            font-size: 10px;
+            vertical-align: top;
+        }
+
+        .data-table tr:nth-child(even) {
+            background-color: #f9fafb;
+        }
+
+        .office-card {
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            padding: 12px;
+            margin: 8px 0;
+            background: #fafafa;
+        }
+
+        .office-card .office-name {
+            font-weight: bold;
+            color: #1f2937;
+            font-size: 12px;
+        }
+
+        .office-card .office-url {
+            color: #2563eb;
+            font-size: 10px;
+            word-break: break-all;
+        }
+
+        .office-card .office-desc {
+            color: #6b7280;
+            font-size: 10px;
+            margin-top: 4px;
+        }
+
+        .alert-box {
+            padding: 12px;
+            border-radius: 6px;
+            margin: 10px 0;
+        }
+
+        .alert-warning {
+            background-color: #fef3c7;
+            border: 1px solid #f59e0b;
+            color: #92400e;
+        }
+
+        .alert-danger {
+            background-color: #fecaca;
+            border: 1px solid #ef4444;
+            color: #991b1b;
+        }
+
+        .alert-info {
+            background-color: #dbeafe;
+            border: 1px solid #3b82f6;
+            color: #1e40af;
+        }
+
+        .list-item {
+            padding: 4px 0;
+            border-bottom: 1px solid #f3f4f6;
+        }
+
+        .list-item:last-child {
+            border-bottom: none;
+        }
+
+        .verification-links {
+            background: #f0f9ff;
+            padding: 12px;
+            border-radius: 6px;
+            margin: 10px 0;
+        }
+
+        .verification-links .link {
+            display: block;
+            color: #0369a1;
+            font-size: 10px;
+            margin: 3px 0;
+            word-break: break-all;
+        }
+
+        .footer {
+            margin-top: 30px;
+            padding-top: 15px;
+            border-top: 1px solid #e5e7eb;
+            font-size: 9px;
+            color: #6b7280;
+            text-align: center;
+        }
+
+        .two-column {
+            display: table;
+            width: 100%;
+            table-layout: fixed;
+        }
+
+        .column {
+            display: table-cell;
+            width: 50%;
+            padding-right: 10px;
+            vertical-align: top;
+        }
+
+        .column:last-child {
+            padding-right: 0;
+            padding-left: 10px;
+        }
+
+        .status-badge {
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 9px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .status-active { background: #d1fae5; color: #065f46; }
+        .status-closed { background: #f3f4f6; color: #374151; }
+        .status-open { background: #fef3c7; color: #92400e; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🧠 LedgerTrace Entity Risk Report</h1>
+        <div class="subtitle">Comprehensive Entity Intelligence & Public Finance Forensics</div>
+    </div>
+
+    <div class="report-meta">
+        <table>
+            <tr>
+                <td class="label">Entity Name:</td>
+                <td><strong>{{ entity_name }}</strong></td>
+                <td class="label">Report Generated:</td>
+                <td>{{ generated_at }}</td>
+            </tr>
+            <tr>
+                <td class="label">Analysis Date:</td>
+                <td>{{ analysis_date }}</td>
+                <td class="label">Report Version:</td>
+                <td>1.0</td>
+            </tr>
+            {% if entity_input.address %}
+            <tr>
+                <td class="label">Entity Address:</td>
+                <td colspan="3">{{ entity_input.address }}</td>
+            </tr>
+            {% endif %}
+            {% if entity_input.ein %}
+            <tr>
+                <td class="label">Federal EIN:</td>
+                <td>{{ entity_input.ein }}</td>
+                <td class="label">County:</td>
+                <td>{{ entity_input.county or "N/A" }}</td>
+            </tr>
+            {% endif %}
+        </table>
+    </div>
+
+    <div class="risk-score-section">
+        <h2 style="margin: 0; font-size: 18px;">Overall Risk Assessment</h2>
+        <div class="risk-score risk-{{ 'low' if risk_score < 30 else 'medium' if risk_score < 70 else 'high' }}">
+            {{ risk_score }}/100
+        </div>
+        <div style="font-size: 12px; color: #6b7280;">
+            Risk Level: {{ 'Low Risk' if risk_score < 30 else 'Medium Risk' if risk_score < 70 else 'High Risk' }}
+        </div>
+        {% if anomalies %}
+        <div style="margin-top: 15px;">
+            <strong>{{ anomalies|length }} Anomalies Detected</strong>
+        </div>
+        {% endif %}
+    </div>
+
+    {% if 'entity_info' in include_sections %}
+    <div class="section">
+        <div class="section-title">📋 Entity Classification</div>
+        
+        {% if entity_type.is_trust %}
+        <div class="alert-box alert-warning">
+            <strong>⚠️ Trust Entity Detected</strong><br>
+            This entity has been classified as a trust structure which may require additional regulatory oversight.
+        </div>
+        {% endif %}
+
+        <table class="data-table">
+            <tr>
+                <th>Classification</th>
+                <th>Status</th>
+                <th>Risk Indicators</th>
+            </tr>
+            <tr>
+                <td>Trust Entity</td>
+                <td>{{ "Yes" if entity_type.is_trust else "No" }}</td>
+                <td>{{ entity_type.risk_indicators|length }} indicators</td>
+            </tr>
+            {% if entity_type.trust_types %}
+            <tr>
+                <td>Trust Types</td>
+                <td colspan="2">{{ entity_type.trust_types|join(", ") }}</td>
+            </tr>
+            {% endif %}
+            <tr>
+                <td>Requires Regulation</td>
+                <td>{{ "Yes" if entity_type.requires_regulation else "No" }}</td>
+                <td>High Risk: {{ "Yes" if entity_type.high_risk else "No" }}</td>
+            </tr>
+        </table>
+
+        {% if entity_type.risk_indicators %}
+        <div class="subsection-title">Risk Indicators</div>
+        {% for indicator in entity_type.risk_indicators %}
+        <div class="list-item">• {{ indicator }}</div>
+        {% endfor %}
+        {% endif %}
+    </div>
+    {% endif %}
+
+    {% if 'county_offices' in include_sections and property %}
+    <div class="section">
+        <div class="section-title">🏛️ County Office Integration</div>
+        
+        {% if property.county %}
+        <div class="subsection-title">Property Information - {{ property.county }} County</div>
+        <table class="data-table">
+            <tr><th>Field</th><th>Value</th></tr>
+            <tr><td>Address</td><td>{{ property.address }}</td></tr>
+            <tr><td>Parcel ID</td><td>{{ property.parcel_id or "Generated for lookup" }}</td></tr>
+            <tr><td>Owner Name</td><td>{{ property.owner_name }}</td></tr>
+            <tr><td>Land Use</td><td>{{ property.land_use }}</td></tr>
+            <tr><td>Market Value</td><td>{{ property.market_value }}</td></tr>
+            <tr><td>Delinquent Taxes</td><td>{{ "Yes" if property.delinquent_taxes else "No" }}</td></tr>
+        </table>
+        {% endif %}
+
+        {% if property.offices %}
+        <div class="subsection-title">Government Office Integrations</div>
+        {% for office_type, office_data in property.offices.items() %}
+        <div class="office-card">
+            <div class="office-name">
+                {% if 'property' in office_type %}📄{% elif 'tax' in office_type %}💰{% else %}⚖️{% endif %}
+                {{ office_data.name }}
+            </div>
+            <div class="office-url">🌐 {{ office_data.url }}</div>
+            <div class="office-url">🔍 {{ office_data.search_url }}</div>
+            <div class="office-desc">{{ office_data.description }}</div>
+        </div>
+        {% endfor %}
+        {% endif %}
+
+        {% if property.verification_links %}
+        <div class="verification-links">
+            <strong>🔗 Direct Verification Links</strong>
+            {% for link_type, url in property.verification_links.items() %}
+            <div class="link">{{ link_type }}: {{ url }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    {% if 'court_activity' in include_sections and court_data %}
+    <div class="section">
+        <div class="section-title">⚖️ Court & Legal Activity</div>
+        
+        <div class="two-column">
+            <div class="column">
+                <table class="data-table">
+                    <tr><th>Metric</th><th>Count</th></tr>
+                    <tr><td>Total Cases</td><td>{{ court_data.case_count }}</td></tr>
+                    <tr><td>Foreclosure Cases</td><td>{{ "Yes" if court_data.has_foreclosure else "No" }}</td></tr>
+                    <tr><td>Tax Liens</td><td>{{ "Yes" if court_data.has_tax_lien else "No" }}</td></tr>
+                    <tr><td>Civil Litigation</td><td>{{ "Yes" if court_data.has_civil else "No" }}</td></tr>
+                    <tr><td>Bankruptcy</td><td>{{ "Yes" if court_data.has_bankruptcy else "No" }}</td></tr>
+                </table>
+            </div>
+            <div class="column">
+                {% if court_data.risk_indicators %}
+                <div class="subsection-title">Risk Indicators</div>
+                {% for indicator in court_data.risk_indicators %}
+                <div class="list-item">⚠️ {{ indicator }}</div>
+                {% endfor %}
+                {% endif %}
+            </div>
+        </div>
+
+        {% if court_data.cases %}
+        <div class="subsection-title">Recent Court Cases</div>
+        <table class="data-table">
+            <tr>
+                <th>Case Type</th>
+                <th>Case Number</th>
+                <th>Status</th>
+                <th>Filed Date</th>
+                <th>Amount</th>
+            </tr>
+            {% for case in court_data.cases[:10] %}
+            <tr>
+                <td>{{ case.case_type }}</td>
+                <td>{{ case.case_number or "N/A" }}</td>
+                <td><span class="status-badge status-{{ case.status.lower() }}">{{ case.status }}</span></td>
+                <td>{{ case.filed_date or "N/A" }}</td>
+                <td>{{ case.amount or "N/A" }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    {% if 'domain_info' in include_sections and domain_data %}
+    <div class="section">
+        <div class="section-title">🌐 Domain & Web Presence</div>
+        
+        <table class="data-table">
+            <tr><th>Metric</th><th>Value</th></tr>
+            <tr><td>Total Domains</td><td>{{ domain_data.domain_count }}</td></tr>
+            <tr><td>Active Website</td><td>{{ "Yes" if domain_data.has_active_website else "No" }}</td></tr>
+            <tr><td>Risk Indicators</td><td>{{ domain_data.risk_indicators|length }}</td></tr>
+        </table>
+
+        {% if domain_data.domains %}
+        <div class="subsection-title">Registered Domains</div>
+        {% for domain in domain_data.domains %}
+        <div class="list-item">
+            <strong>{{ domain.domain }}</strong> - Registered {{ domain.registration_date }}
+            {% if domain.is_active %}<span class="status-badge status-active">Active</span>{% endif %}
+        </div>
+        {% endfor %}
+        {% endif %}
+    </div>
+    {% endif %}
+
+    {% if 'grants_data' in include_sections and grants_data %}
+    <div class="section">
+        <div class="section-title">💰 Government Funding Analysis</div>
+        
+        <div class="two-column">
+            <div class="column">
+                <table class="data-table">
+                    <tr><th>Funding Metric</th><th>Count/Amount</th></tr>
+                    <tr><td>Total Awards</td><td>{{ grants_data.total_awards }}</td></tr>
+                    <tr><td>Active Grants</td><td>{{ grants_data.active_grants }}</td></tr>
+                    <tr><td>Active Contracts</td><td>{{ grants_data.active_contracts }}</td></tr>
+                    <tr><td>Total Funding</td><td>${{ "{:,.2f}".format(grants_data.total_funding) }}</td></tr>
+                    <tr><td>Federal Funding</td><td>{{ "Yes" if grants_data.has_federal_funding else "No" }}</td></tr>
+                </table>
+            </div>
+            <div class="column">
+                {% if grants_data.risk_indicators %}
+                <div class="subsection-title">Compliance Issues</div>
+                {% for indicator in grants_data.risk_indicators %}
+                <div class="list-item">⚠️ {{ indicator }}</div>
+                {% endfor %}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if 'monitoring_data' in include_sections and monitoring_data %}
+    <div class="section">
+        <div class="section-title">🔍 Monitoring & Change Detection</div>
+        
+        <table class="data-table">
+            <tr><th>Monitoring Metric</th><th>Value</th></tr>
+            <tr><td>Active Alerts</td><td>{{ monitoring_data.active_alert_count }}</td></tr>
+            <tr><td>Total Changes</td><td>{{ monitoring_data.total_changes }}</td></tr>
+            <tr><td>High Risk Changes</td><td>{{ monitoring_data.high_risk_changes }}</td></tr>
+            <tr><td>Monitoring Score</td><td>{{ monitoring_data.monitoring_score }}/100</td></tr>
+            <tr><td>Last Scan</td><td>{{ monitoring_data.last_scan }}</td></tr>
+        </table>
+    </div>
+    {% endif %}
+
+    {% if anomalies %}
+    <div class="section">
+        <div class="section-title">🚨 Detected Anomalies</div>
+        {% for anomaly in anomalies %}
+        <div class="alert-box alert-danger">
+            <strong>Anomaly {{ loop.index }}:</strong> {{ anomaly }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="footer">
+        <p><strong>LedgerTrace Entity Intelligence Report</strong> | Generated {{ generated_at }}</p>
+        <p>This report contains analysis of publicly available records and should be used for informational purposes only.</p>
+        <p>All county office links and verification URLs are direct connections to official government systems.</p>
+        <p>🧠🏛️📍 Leading the Future of County-Level Public Finance Forensics</p>
+    </div>
+</body>
+</html>
